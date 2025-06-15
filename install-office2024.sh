@@ -42,7 +42,7 @@ sudo apt install -y \
   libglx-mesa0:i386
 
 # Preparar prefixo Wine 32-bit
-export WINEARCH=win32
+export WINEARCH=win64
 export WINEPREFIX="$PREFIX"
 wineboot -i
 
