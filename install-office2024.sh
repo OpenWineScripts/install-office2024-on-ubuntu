@@ -1,72 +1,55 @@
-#!/usr/bin/env bash
-set -e
+#!/bin/bash
 
-# Caminho do prefixo Wine
-PREFIX="$HOME/Documentos/office-2024"
+# Office 365 installation script using Wine
+# For Ubuntu/Debian-based distributions
 
-# Verificar se o Wine está instalado
-if ! command -v wine &>/dev/null; then
-  echo "Wine não encontrado. Instalando WineHQ Stable 10.0..."
+# Function to print status
+print_status() {
+    echo -e "\033[1;32m[*]\033[0m $1"
+}
 
-  # Adicionar arquitetura i386
-  sudo dpkg --add-architecture i386
-  sudo apt update 
+# Update system and install dependencies
+print_status "Updating system and installing Wine, Winetricks, and required tools..."
+sudo dpkg --add-architecture i386
+sudo apt update && sudo apt upgrade -y
+sudo apt install -y wine64 wine32 winetricks cabextract wget unzip p7zip-full
 
-  # Adicionar repositório WineHQ 10.0
-  sudo mkdir -pm755 /etc/apt/keyrings
-  sudo wget -O /etc/apt/keyrings/winehq-archive.key \
-    https://dl.winehq.org/wine-builds/winehq.key
-  sudo wget -NP /etc/apt/sources.list.d/ \
-    https://dl.winehq.org/wine-builds/ubuntu/dists/noble/winehq-noble.sources
+# Create Wine prefix
+WINEPREFIX="$HOME/Documentos/office-2024"
+ARCHITECTURE="win64"
 
-  echo "Atualizando pacotes..."
-  sudo apt update
+print_status "Creating Wine prefix at $WINEPREFIX..."
+WINEARCH=$ARCHITECTURE wineboot -u
 
-  echo "Instalando WineHQ Stable 10.0..."
-  sudo apt install --install-recommends winehq-stable
+# Configure required Winetricks dependencies
+print_status "Installing required Windows components with Winetricks..."
+WINEPREFIX=$WINEPREFIX winetricks -q dotnet48 corefonts fontsmooth=rgb wininet winhttp msxml6 riched20 riched30 urlmon
 
-  echo "Wine instalado com sucesso!"
-else
-  echo "Wine já está instalado. Versão atual:"
-  wine --version
-fi
+# Download Office Deployment Tool
+print_status "Downloading Office Deployment Tool..."
+mkdir -p ~/Documentos/office-2024/office365-installer && cd ~/Documentos/office-2024/office365-installer
+wget -O office_deployment_tool.exe https://download.microsoft.com/download/7/c/4/7c4e95b1-3e5b-47e5-b6b7-4c957f997ce0/office_deployment_tool.exe
 
-# Instalar pacotes essenciais
-sudo apt install -y \
-  gcc make perl software-properties-common \
-  winetricks \
-  winbind smbclient \
-  libglu1-mesa:i386 \
-  libgl1:i386 \
-  libgl1-mesa-dri:i386 \
-  libglx-mesa0:i386
+# Extract the tool
+print_status "Extracting Office Deployment Tool..."
+wine office_deployment_tool.exe /extract:. /quiet
 
-# Preparar prefixo Wine 32-bit
-export WINEARCH=win64
-export WINEPREFIX="$PREFIX"
-wineboot -i
-
-# Instalar bibliotecas do Windows via Winetricks
-WINEPREFIX="$PREFIX" winetricks -q cmd corefonts msxml6 riched20 gdiplus
-
-# Criar e aplicar configurações de DLL
-REGFILE="$PREFIX/officedlloverrides.reg"
-cat <<EOF > "$REGFILE"
-REGEDIT4
-
-[HKEY_CURRENT_USER\Software\Wine\DllOverrides]
-"riched20"="native,builtin"
-"msxml6"="native,builtin"
-"gdiplus"="native,builtin"
+# Create configuration XML file
+print_status "Creating configuration file..."
+cat > configuration.xml <<EOF
+<Configuration>
+  <Add OfficeClientEdition="64" Channel="Current">
+    <Product ID="O365ProPlusRetail">
+      <Language ID="en-us" />
+    </Product>
+  </Add>
+  <Display Level="None" AcceptEULA="TRUE" />
+  <Property Name="AUTOACTIVATE" Value="1" />
+</Configuration>
 EOF
 
-WINEPREFIX="$PREFIX" wine regedit "$REGFILE"
+# Start Office installation
+print_status "Starting Office installation... (this might take a while)"
+WINEPREFIX=$WINEPREFIX wine setup.exe /configure configuration.xml
 
-echo
-echo "✅ Wine 10.0 e dependências do Office instalados!"
-echo
-echo "▶ Para instalar o Office, execute:"
-echo "   WINEPREFIX=\"$PREFIX\" wine /caminho/para/OfficeSetup.exe"
-echo
-echo "▶ Para iniciar o Word após a instalação:"
-echo "   WINEPREFIX=\"$PREFIX\" wine \"$PREFIX/drive_c/Program Files/Microsoft Office/root/Office16/WINWORD.EXE\""
+print_status "Installation script completed. You may now run Office apps using Wine."
