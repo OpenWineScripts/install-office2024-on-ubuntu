@@ -28,11 +28,7 @@ WINEPREFIX=$WINEPREFIX winetricks -q dotnet48 corefonts fontsmooth=rgb wininet w
 # Download Office Deployment Tool
 print_status "Downloading Office Deployment Tool..."
 mkdir -p ~/Documentos/office-2024/office365-installer && cd ~/Documentos/office-2024/office365-installer
-wget -O office_deployment_tool.exe https://download.microsoft.com/download/7/c/4/7c4e95b1-3e5b-47e5-b6b7-4c957f997ce0/office_deployment_tool.exe
-
-# Extract the tool
-print_status "Extracting Office Deployment Tool..."
-wine office_deployment_tool.exe /extract:. /quiet
+wget -O setup.exe https://officecdn.microsoft.com/pr/wsus/setup.exe
 
 # Create configuration XML file
 print_status "Creating configuration file..."
