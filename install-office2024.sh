@@ -2,7 +2,7 @@
 set -e
 
 # Caminho do prefixo Wine
-PREFIX="$HOME/.wine-office2024"
+PREFIX="$HOME/Documentos/office-2024"
 
 # Verificar se o Wine está instalado
 if ! command -v wine &>/dev/null; then
@@ -36,7 +36,10 @@ sudo apt install -y \
   gcc make perl software-properties-common \
   winetricks \
   winbind smbclient \
-  libgl1-mesa-glx:i386 libglu1-mesa:i386
+  libglu1-mesa:i386 \
+  libgl1:i386 \
+  libgl1-mesa-dri:i386 \
+  libglx-mesa0:i386
 
 # Preparar prefixo Wine 32-bit
 export WINEARCH=win32
@@ -44,10 +47,7 @@ export WINEPREFIX="$PREFIX"
 wineboot -i
 
 # Instalar bibliotecas do Windows via Winetricks
-winetricks -q cmd corefonts msxml6 riched20 gdiplus
-
-# Aplicar substituições de DLL
-winetricks dlls=riched20,msxml6,gdiplus
+WINEPREFIX="$PREFIX" winetricks -q cmd corefonts msxml6 riched20 gdiplus
 
 # Criar e aplicar configurações de DLL
 REGFILE="$PREFIX/officedlloverrides.reg"
@@ -61,7 +61,6 @@ REGEDIT4
 EOF
 
 WINEPREFIX="$PREFIX" wine regedit "$REGFILE"
-rm "$REGFILE"
 
 echo
 echo "✅ Wine 10.0 e dependências do Office instalados!"
