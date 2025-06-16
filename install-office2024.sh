@@ -39,7 +39,7 @@ cat > configuration.xml <<EOF
       <Language ID="en-us" />
     </Product>
   </Add>
-  <Display Level="None" AcceptEULA="TRUE" />
+  <Display Level="Full" AcceptEULA="TRUE" />
   <Property Name="AUTOACTIVATE" Value="1" />
 </Configuration>
 EOF
