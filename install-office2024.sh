@@ -57,7 +57,7 @@ echo -e "${GREEN}Installing Wine and required dependencies...${NC}"
 if [[ "$PM" == "apt" ]]; then
     sudo dpkg --add-architecture i386
     sudo apt update
-    sudo apt install -y --install-recommends wine32 wine64 winetricks cabextract p7zip-full fontconfig
+    sudo apt install -y --install-recommends wine32 wine64 winetricks cabextract p7zip-full fontconfig ttf-mscorefonts-installer
 elif [[ "$PM" == "dnf" ]]; then
     sudo dnf install -y wine winetricks cabextract p7zip fontconfig
 elif [[ "$PM" == "pacman" ]]; then
@@ -96,6 +96,9 @@ echo -e "${GREEN}Installing required Wine components for Office 365...${NC}"
 
 WINEPREFIX="$WINEPREFIX" winetricks -q corefonts fontsmooth=rgb msxml6 riched20 riched30 msxml3 atmlib gdiplus vcrun2013 vcrun2017
 WINEPREFIX="$WINEPREFIX" winetricks -q -q win10
+
+# Additional Microsoft Office dependencies
+WINEPREFIX="$WINEPREFIX" winetricks -q vcrun2015 d3dx9 d3dcompiler_43
 
 # Install Mono and Gecko if missing (Wine usually asks on first run)
 echo -e "${GREEN}Checking Wine Mono and Gecko installation...${NC}"
