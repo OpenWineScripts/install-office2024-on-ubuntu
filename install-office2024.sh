@@ -1,128 +1,162 @@
 #!/bin/bash
+# Instalação do Office 2024 via Wine em Linux e macOS com download dos arquivos offline
+# Este script realiza:
+# 1. Instalação do Wine e Winetricks (detectando a distribuição Linux: Arch, openSUSE, Debian/Ubuntu, Fedora)
+# 2. Criação do prefixo Wine para o Office
+# 3. Instalação das dependências necessárias para o Office via Winetricks
+# 4. Geração do arquivo configuration.xml para o Office Deployment Tool (ODT)
+# 5. Download dos arquivos offline do Office usando setup.exe /download
+
 set -e
 
-# Script to install Microsoft Office 365 using Wine and its dependencies
+#########################################
+# Funções para instalação em distribuições Linux
+#########################################
 
-# Variables - customize as needed
-WINEPREFIX="$HOME/Documentos/office-2024"
-WINEARCH="win64"
-OFFICE_SETUP_URL=""  # User must provide Office 365 offline installer path or URL
-OFFICE_INSTALLER_PATH="$WINEPREFIX/office-2024/office2024-installer/setup.exe" # default download path
-
-# Colors for messages
-GREEN="\033[0;32m"
-YELLOW="\033[1;33m"
-RED="\033[0;31m"
-NC="\033[0m" # No Color
-
-echo -e "${GREEN}=== Microsoft Office 365 Installation with Wine ===${NC}"
-
-# Helper function for error exit
-error_exit() {
-    echo -e "${RED}Error: $1${NC}"
-    exit 1
+install_arch_dependencies() {
+    echo "Distribuição Arch Linux detectada. Atualizando e instalando Wine e Winetricks..."
+    sudo pacman -Syu --noconfirm wine winetricks
 }
 
-# Check for sudo privileges
-if ! sudo -v >/dev/null 2>&1; then
-    error_exit "This script requires sudo privileges. Please run as a user with sudo access."
-fi
-
-# Check platform and package manager
-if [[ "$(uname)" == "Linux" ]]; then
-    if command -v apt >/dev/null 2>&1; then
-        PM="apt"
-    elif command -v dnf >/dev/null 2>&1; then
-        PM="dnf"
-    elif command -v pacman >/dev/null 2>&1; then
-        PM="pacman"
-    else
-        error_exit "Unsupported Linux package manager. Please install Wine manually."
-    fi
-elif [[ "$(uname)" == "Darwin" ]]; then
-    if command -v brew >/dev/null 2>&1; then
-        PM="brew"
-    else
-        error_exit "Homebrew not found. Please install Homebrew first: https://brew.sh/"
-    fi
-else
-    error_exit "Unsupported OS: $(uname). This script supports Linux and macOS only."
-fi
-
-echo -e "${YELLOW}Using package manager: $PM${NC}"
-
-# Install Wine and dependencies
-echo -e "${GREEN}Installing Wine and required dependencies...${NC}"
-
-if [[ "$PM" == "apt" ]]; then
-    sudo dpkg --add-architecture i386
+install_debian_dependencies() {
+    echo "Distribuição Debian/Ubuntu detectada. Atualizando e instalando Wine e Winetricks..."
     sudo apt update
-    sudo apt install -y --install-recommends wine32 wine64 winetricks cabextract p7zip-full fontconfig ttf-mscorefonts-installer
-elif [[ "$PM" == "dnf" ]]; then
-    sudo dnf install -y wine winetricks cabextract p7zip fontconfig
-elif [[ "$PM" == "pacman" ]]; then
-    sudo pacman -Sy --noconfirm wine winetricks cabextract p7zip fontconfig
-elif [[ "$PM" == "brew" ]]; then
-    brew update
-    # Install wine-stable or wine depending on availability
-    if brew info wine-stable >/dev/null 2>&1; then
-        brew install wine-stable winetricks cabextract p7zip fontconfig
+    sudo apt install -y wine64 wine winetricks
+}
+
+install_fedora_dependencies() {
+    echo "Distribuição Fedora detectada. Atualizando e instalando Wine e Winetricks..."
+    sudo dnf install -y wine winetricks
+}
+
+install_opensuse_dependencies() {
+    echo "Distribuição openSUSE detectada. Atualizando e instalando Wine e Winetricks..."
+    sudo zypper refresh
+    sudo zypper install -y wine wine-winetricks
+}
+
+install_linux_dependencies() {
+    if [ -f /etc/os-release ]; then
+        . /etc/os-release
+        case "$ID" in
+            arch|manjaro)
+                install_arch_dependencies
+                ;;
+            debian|ubuntu)
+                install_debian_dependencies
+                ;;
+            fedora)
+                install_fedora_dependencies
+                ;;
+            opensuse*|suse)
+                install_opensuse_dependencies
+                ;;
+            *)
+                echo "Distribuição Linux não reconhecida. Tente instalar manualmente o Wine e o Winetricks."
+                exit 1
+                ;;
+        esac
     else
-        brew install wine winetricks cabextract p7zip fontconfig
+        echo "Arquivo /etc/os-release não encontrado. Não foi possível identificar a distribuição Linux."
+        exit 1
     fi
+}
+
+#########################################
+# Função para instalação no macOS via Homebrew
+#########################################
+
+install_macos_dependencies() {
+    echo "Detectado macOS. Verificando Homebrew..."
+    if ! command -v brew &> /dev/null; then
+        echo "Homebrew não está instalado. Por favor, instale o Homebrew primeiro: https://brew.sh"
+        exit 1
+    fi
+    echo "Atualizando Homebrew e instalando Wine e Winetricks..."
+    brew update
+    brew install --cask wine-stable
+    brew install winetricks
+}
+
+#########################################
+# Detecção do sistema operacional
+#########################################
+
+OS_TYPE=$(uname)
+if [ "$OS_TYPE" = "Linux" ]; then
+    install_linux_dependencies
+elif [ "$OS_TYPE" = "Darwin" ]; then
+    install_macos_dependencies
+else
+    echo "Sistema operacional não suportado para instalação automática do Wine pelo script."
+    exit 1
 fi
 
-# Verify Wine installed
-if ! command -v wine &>/dev/null; then
-    error_exit "Wine installation failed or Wine command not found."
-fi
-if ! command -v winetricks &>/dev/null; then
-    error_exit "Winetricks installation failed or winetricks command not found."
-fi
+#########################################
+# Configuração do prefixo Wine e instalação das dependências do Office
+#########################################
 
-# Setup Wine prefix and architecture for Office
-echo -e "${GREEN}Setting up Wine prefix at ${WINEPREFIX} with architecture ${WINEARCH}${NC}"
+# Define o prefixo Wine para manter o Office isolado
+WINEPREFIX="$HOME/.wine_office"
+WINEARCH="win64"    # Use "win32" se preferir a versão 32-bit
 
-export WINEPREFIX=$WINEPREFIX
-export WINEARCH=$WINEARCH
-
+# Cria o prefixo se não existir
 if [ ! -d "$WINEPREFIX" ]; then
-    echo -e "${YELLOW}Creating new Wine prefix...${NC}"
-    wineboot --init
+    echo "Criando Wine prefix em: $WINEPREFIX"
+    env WINEARCH=$WINEARCH WINEPREFIX="$WINEPREFIX" wineboot -i
 fi
 
-# Install Wine dependencies via winetricks required by Office 365
-echo -e "${GREEN}Installing required Wine components for Office 365...${NC}"
+# Lista de dependências recomendadas via Winetricks para o Office
+declare -a DEPENDENCIAS=("corefonts" "msxml6" "gdiplus" "dotnet472" "vcrun2017")
+echo "Instalando dependências com Winetricks..."
+for dep in "${DEPENDENCIAS[@]}"; do
+    echo "Instalando $dep ..."
+    env WINEPREFIX="$WINEPREFIX" winetricks -q "$dep"
+done
 
-WINEPREFIX="$WINEPREFIX" winetricks -q corefonts fontsmooth=rgb msxml6 riched20 riched30 msxml3 atmlib gdiplus vcrun2013 vcrun2017
-WINEPREFIX="$WINEPREFIX" winetricks -q -q win10
+#########################################
+# Geração do arquivo configuration.xml
+#########################################
 
-# Additional Microsoft Office dependencies
-WINEPREFIX="$WINEPREFIX" winetricks -q vcrun2015 d3dx9 d3dcompiler_43
+echo "Gerando arquivo configuration.xml..."
+cat <<'EOF' > configuration.xml
+<?xml version="1.0" encoding="UTF-8"?>
+<Configuration>
+  <Add OfficeClientEdition="64" SourcePath="Office2024Offline" Channel="Broad">
+    <Product ID="ProPlus2024Retail">
+      <Language ID="pt-br" />
+    </Product>
+  </Add>
+  <Display Level="None" AcceptEULA="TRUE" />
+  <Property Name="AUTOACTIVATE" Value="1" />
+</Configuration>
+EOF
 
-# Install Mono and Gecko if missing (Wine usually asks on first run)
-echo -e "${GREEN}Checking Wine Mono and Gecko installation...${NC}"
+echo "Arquivo configuration.xml gerado com sucesso."
 
-MONO_INSTALLED=$(wine --version && WINEPREFIX="$WINEPREFIX" wine reg query "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\App Paths\\mscoree.exe" > /dev/null 2>&1 && echo "yes" || echo "no")
-GECKO_INSTALLED=$(wine --version && WINEPREFIX="$WINEPREFIX" wine reg query "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\App Paths\\iexplore.exe" > /dev/null 2>&1 && echo "yes" || echo "no")
+#########################################
+# Validação da presença do setup.exe (Office Deployment Tool)
+#########################################
 
-if [ "$MONO_INSTALLED" != "yes" ]; then
-    echo -e "${YELLOW}Installing Wine Mono...${NC}"
-    WINEPREFIX="$WINEPREFIX" winetricks -q mono210
+if [ ! -f "setup.exe" ]; then
+    echo "Erro: O arquivo setup.exe (Office Deployment Tool) não foi encontrado."
+    echo "Certifique-se de ter baixado e extraído o ODT (setup.exe) para o mesmo diretório deste script."
+    exit 1
 fi
 
-if [ "$GECKO_INSTALLED" != "yes" ]; then
-    echo -e "${YELLOW}Installing Wine Gecko...${NC}"
-    WINEPREFIX="$WINEPREFIX"winetricks -q gecko37
-fi
+#########################################
+# Download dos arquivos offline do Office
+#########################################
 
-# Run Office 365 installer via Wine
-echo -e "${GREEN}Launching Microsoft Office 365 installer. Please follow the installation wizard.${NC}"
-WINEPREFIX="$WINEPREFIX" wine $OFFICE_INSTALLER_PATH /configure configuration.xml
+echo "Iniciando o download dos arquivos de instalação offline do Office 2024..."
+env WINEPREFIX="$WINEPREFIX" wine setup.exe /download configuration.xml
 
-echo -e "${GREEN}Microsoft Office 365 installation completed (or in progress).${NC}"
-echo -e "${YELLOW}To run Office applications, use the following command:${NC}"
-echo -e "${YELLOW}WINEPREFIX=$WINEPREFIX wine start 'C:\\Program Files\\Microsoft Office\\<program.exe>"
-echo -e "${YELLOW}Replace <program.exe> for other Office apps.${NC}"
+echo "Download concluído. Os arquivos foram salvos na pasta definida em SourcePath (Office2024Offline)."
 
-echo -e "${GREEN}Installation script completed successfully.${NC}"
+echo ""
+echo "--------------------------------------------"
+echo "Próximos Passos:"
+echo "1. Verifique se a pasta 'Office2024Offline' contém os arquivos baixados."
+echo "2. Para instalar o Office, execute:"
+echo "      env WINEPREFIX=\"$WINEPREFIX\" wine setup.exe /configure configuration.xml"
+echo "--------------------------------------------"
