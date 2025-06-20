@@ -117,8 +117,13 @@ for dep in "${DEPENDENCIES[@]}"; do
 done
 
 #########################################
-# Generate configuration.xml for ODT
+# Create the folder Office2024Offline and generate configuration.xml for ODT
 #########################################
+
+if [ ! -d "$WINEPREFIX/drive_c/Office2024Offline" ]; then
+    echo "Creating the folder Office2024Offline, it doesn't exists..."
+    mkdir "$WINEPREFIX/drive_c/Office2024Offline"
+fi
 
 echo "Generating configuration.xml..."
 cat <<'EOF' > $HOME/Documents/wine_office/drive_c/Office2024Offline/configuration.xml
