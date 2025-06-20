@@ -124,12 +124,12 @@ echo "Generating configuration.xml..."
 cat <<'EOF' > configuration.xml
 <?xml version="1.0" encoding="UTF-8"?>
 <Configuration>
-  <Add OfficeClientEdition="64" SourcePath="Office2024Offline" Channel="Broad">
+  <Add OfficeClientEdition="64" SourcePath="C:\Office2024Offline" Channel="Broad">
     <Product ID="ProPlus2024Retail">
       <Language ID="pt-br" />
     </Product>
   </Add>
-  <Display Level="None" AcceptEULA="TRUE" />
+  <Display Level="Full" AcceptEULA="TRUE" />
   <Property Name="AUTOACTIVATE" Value="1" />
 </Configuration>
 EOF
