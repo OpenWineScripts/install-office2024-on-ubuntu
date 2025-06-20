@@ -1,36 +1,36 @@
 #!/bin/bash
-# Instalação do Office 2024 via Wine em Linux e macOS com download dos arquivos offline
-# Este script realiza:
-# 1. Instalação do Wine e Winetricks (detectando a distribuição Linux: Arch, openSUSE, Debian/Ubuntu, Fedora)
-# 2. Criação do prefixo Wine para o Office
-# 3. Instalação das dependências necessárias para o Office via Winetricks
-# 4. Geração do arquivo configuration.xml para o Office Deployment Tool (ODT)
-# 5. Download dos arquivos offline do Office usando setup.exe /download
+# Office 2024 installation via Wine for Linux and macOS with offline download support
+# This script performs the following:
+# 1. Detects and installs Wine and Winetricks (supports Arch, Debian/Ubuntu, Fedora, openSUSE, and macOS)
+# 2. Creates a Wine prefix specifically for Office
+# 3. Installs necessary Office dependencies using Winetricks
+# 4. Generates configuration.xml for Office Deployment Tool (ODT)
+# 5. Downloads offline Office setup files using setup.exe /download
 
 set -e
 
 #########################################
-# Funções para instalação em distribuições Linux
+# Functions for Linux-based distributions
 #########################################
 
 install_arch_dependencies() {
-    echo "Distribuição Arch Linux detectada. Atualizando e instalando Wine e Winetricks..."
+    echo "Detected Arch Linux. Updating and installing Wine and Winetricks..."
     sudo pacman -Syu --noconfirm wine winetricks
 }
 
 install_debian_dependencies() {
-    echo "Distribuição Debian/Ubuntu detectada. Atualizando e instalando Wine e Winetricks..."
+    echo "Detected Debian/Ubuntu. Updating and installing Wine and Winetricks..."
     sudo apt update
     sudo apt install -y wine64 wine winetricks
 }
 
 install_fedora_dependencies() {
-    echo "Distribuição Fedora detectada. Atualizando e instalando Wine e Winetricks..."
+    echo "Detected Fedora. Installing Wine and Winetricks..."
     sudo dnf install -y wine winetricks
 }
 
 install_opensuse_dependencies() {
-    echo "Distribuição openSUSE detectada. Atualizando e instalando Wine e Winetricks..."
+    echo "Detected openSUSE. Installing Wine and Winetricks..."
     sudo zypper refresh
     sudo zypper install -y wine wine-winetricks
 }
@@ -52,34 +52,34 @@ install_linux_dependencies() {
                 install_opensuse_dependencies
                 ;;
             *)
-                echo "Distribuição Linux não reconhecida. Tente instalar manualmente o Wine e o Winetricks."
+                echo "Unsupported Linux distribution. Please install Wine and Winetricks manually."
                 exit 1
                 ;;
         esac
     else
-        echo "Arquivo /etc/os-release não encontrado. Não foi possível identificar a distribuição Linux."
+        echo "/etc/os-release not found. Unable to detect Linux distribution."
         exit 1
     fi
 }
 
 #########################################
-# Função para instalação no macOS via Homebrew
+# Function for macOS using Homebrew
 #########################################
 
 install_macos_dependencies() {
-    echo "Detectado macOS. Verificando Homebrew..."
+    echo "Detected macOS. Checking for Homebrew..."
     if ! command -v brew &> /dev/null; then
-        echo "Homebrew não está instalado. Por favor, instale o Homebrew primeiro: https://brew.sh"
+        echo "Homebrew is not installed. Please install it from https://brew.sh"
         exit 1
     fi
-    echo "Atualizando Homebrew e instalando Wine e Winetricks..."
+    echo "Installing Wine and Winetricks via Homebrew..."
     brew update
     brew install --cask wine-stable
     brew install winetricks
 }
 
 #########################################
-# Detecção do sistema operacional
+# OS detection and setup
 #########################################
 
 OS_TYPE=$(uname)
@@ -88,37 +88,39 @@ if [ "$OS_TYPE" = "Linux" ]; then
 elif [ "$OS_TYPE" = "Darwin" ]; then
     install_macos_dependencies
 else
-    echo "Sistema operacional não suportado para instalação automática do Wine pelo script."
+    echo "Unsupported OS for automated Wine installation."
     exit 1
 fi
 
 #########################################
-# Configuração do prefixo Wine e instalação das dependências do Office
+# Path creation, Wine prefix setup and Office dependencies
 #########################################
 
-# Define o prefixo Wine para manter o Office isolado
-WINEPREFIX="$HOME/.wine_office"
-WINEARCH="win64"    # Use "win32" se preferir a versão 32-bit
+WINEPREFIX="$HOME/Documentos/wine_office"
+WINEARCH="win64"
 
-# Cria o prefixo se não existir
 if [ ! -d "$WINEPREFIX" ]; then
-    echo "Criando Wine prefix em: $WINEPREFIX"
+    echo "Creating the directory path of variable $WINEPREFIX, if doesn't exists..."
+    mkdir "$WINEPREFIX"
+fi
+
+if [ ! -d "$WINEPREFIX" ]; then
+    echo "Creating Wine prefix at: $WINEPREFIX"
     env WINEARCH=$WINEARCH WINEPREFIX="$WINEPREFIX" wineboot -i
 fi
 
-# Lista de dependências recomendadas via Winetricks para o Office
-declare -a DEPENDENCIAS=("corefonts" "msxml6" "gdiplus" "dotnet472" "vcrun2017")
-echo "Instalando dependências com Winetricks..."
-for dep in "${DEPENDENCIAS[@]}"; do
-    echo "Instalando $dep ..."
+DEPENDENCIES=("corefonts" "msxml6" "gdiplus" "dotnet472" "vcrun2017")
+echo "Installing Office dependencies via Winetricks..."
+for dep in "${DEPENDENCIES[@]}"; do
+    echo "Installing $dep ..."
     env WINEPREFIX="$WINEPREFIX" winetricks -q "$dep"
 done
 
 #########################################
-# Geração do arquivo configuration.xml
+# Generate configuration.xml for ODT
 #########################################
 
-echo "Gerando arquivo configuration.xml..."
+echo "Generating configuration.xml..."
 cat <<'EOF' > configuration.xml
 <?xml version="1.0" encoding="UTF-8"?>
 <Configuration>
@@ -132,31 +134,27 @@ cat <<'EOF' > configuration.xml
 </Configuration>
 EOF
 
-echo "Arquivo configuration.xml gerado com sucesso."
+echo "configuration.xml successfully generated."
 
 #########################################
-# Validação da presença do setup.exe (Office Deployment Tool)
+# Check for setup.exe and download Office
 #########################################
 
 if [ ! -f "setup.exe" ]; then
-    echo "Erro: O arquivo setup.exe (Office Deployment Tool) não foi encontrado."
-    echo "Certifique-se de ter baixado e extraído o ODT (setup.exe) para o mesmo diretório deste script."
+    echo "Error: setup.exe (Office Deployment Tool) not found in the current directory."
+    echo "Please download and extract it from Microsoft's website before proceeding."
     exit 1
 fi
 
-#########################################
-# Download dos arquivos offline do Office
-#########################################
-
-echo "Iniciando o download dos arquivos de instalação offline do Office 2024..."
+echo "Downloading Office offline setup files..."
 env WINEPREFIX="$WINEPREFIX" wine setup.exe /download configuration.xml
 
-echo "Download concluído. Os arquivos foram salvos na pasta definida em SourcePath (Office2024Offline)."
+echo "Download completed. Files saved in the folder specified in configuration.xml (Office2024Offline)."
 
 echo ""
 echo "--------------------------------------------"
-echo "Próximos Passos:"
-echo "1. Verifique se a pasta 'Office2024Offline' contém os arquivos baixados."
-echo "2. Para instalar o Office, execute:"
+echo "Next Steps:"
+echo "1. Verify the 'Office2024Offline' folder contains the downloaded files."
+echo "2. To install Office, run:"
 echo "      env WINEPREFIX=\"$WINEPREFIX\" wine setup.exe /configure configuration.xml"
 echo "--------------------------------------------"
