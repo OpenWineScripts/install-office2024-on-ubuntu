@@ -96,7 +96,7 @@ fi
 # Path creation, Wine prefix setup and Office dependencies
 ##########################################################
 
-WINEPREFIX="$HOME/Documentos/wine_office"
+WINEPREFIX="$HOME/Documents/wine_office"
 WINEARCH="win64"
 
 if [ ! -d "$WINEPREFIX" ]; then
@@ -116,9 +116,9 @@ for dep in "${DEPENDENCIES[@]}"; do
     env WINEPREFIX="$WINEPREFIX" winetricks -q "$dep"
 done
 
-#########################################
+############################################################################
 # Create the folder Office2024Offline and generate configuration.xml for ODT
-#########################################
+############################################################################
 
 if [ ! -d "$WINEPREFIX/drive_c/Office2024Offline" ]; then
     echo "Creating the folder Office2024Offline, it doesn't exists..."
