@@ -92,9 +92,9 @@ else
     exit 1
 fi
 
-#########################################
+##########################################################
 # Path creation, Wine prefix setup and Office dependencies
-#########################################
+##########################################################
 
 WINEPREFIX="$HOME/Documentos/wine_office"
 WINEARCH="win64"
