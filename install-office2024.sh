@@ -109,7 +109,7 @@ if [ ! -d "$WINEPREFIX" ]; then
     env WINEARCH=$WINEARCH WINEPREFIX="$WINEPREFIX" wineboot -i
 fi
 
-DEPENDENCIES=("corefonts" "msxml6" "gdiplus" "dotnet472" "vcrun2017")
+DEPENDENCIES=("corefonts" "msxml6" "gdiplus" "dotnet48" "vcrun2017")
 echo "Installing Office dependencies via Winetricks..."
 for dep in "${DEPENDENCIES[@]}"; do
     echo "Installing $dep ..."
