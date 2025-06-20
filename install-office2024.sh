@@ -121,7 +121,7 @@ done
 #########################################
 
 echo "Generating configuration.xml..."
-cat <<'EOF' > configuration.xml
+cat <<'EOF' > $HOME/Documents/wine_office/drive_c/Office2024Offline/configuration.xml
 <?xml version="1.0" encoding="UTF-8"?>
 <Configuration>
   <Add OfficeClientEdition="64" SourcePath="C:\Office2024Offline" Channel="Broad">
