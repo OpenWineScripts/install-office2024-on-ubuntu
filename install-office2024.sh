@@ -140,7 +140,7 @@ echo "configuration.xml successfully generated."
 # Check for setup.exe and download Office
 #########################################
 
-if [ ! -f "setup.exe" ]; then
+if [ ! -f "$HOME/Documents/wine_office/drive_c/Office2024Offline/setup.exe" ]; then
     echo "Error: setup.exe (Office Deployment Tool) not found in the current directory."
     echo "Please download and extract it from Microsoft's website before proceeding."
     exit 1
