@@ -21,7 +21,7 @@ install_arch_dependencies() {
 install_debian_dependencies() {
     echo "Detected Debian/Ubuntu. Updating and installing Wine and Winetricks..."
     sudo apt update
-    sudo apt install -y wine64 wine winetricks
+    sudo apt install -y wine64 wine32 winetricks
 }
 
 install_fedora_dependencies() {
@@ -126,7 +126,7 @@ if [ ! -d "$WINEPREFIX/drive_c/Office2024Offline" ]; then
 fi
 
 echo "Generating configuration.xml..."
-cat <<'EOF' > $HOME/Documents/wine_office/drive_c/Office2024Offline/configuration.xml
+cat <<'EOF' > $WINEPREFIX/drive_c/Office2024Offline/configuration.xml
 <?xml version="1.0" encoding="UTF-8"?>
 <Configuration>
   <Add OfficeClientEdition="64" SourcePath="C:\Office2024Offline" Channel="Broad">
@@ -140,6 +140,13 @@ cat <<'EOF' > $HOME/Documents/wine_office/drive_c/Office2024Offline/configuratio
 EOF
 
 echo "configuration.xml successfully generated."
+
+###################
+# Extract setup.exe
+###################
+
+cp $HOME/Downloads/office_deployment_tool.exe $WINEPREFIX/drive_c/Office2024Offline/office_deployment_tool.exe
+env WINEPREFIX="$WINEPREFIX" wine $WINEPREFIX/drive_c/Office2024Offline/office_deployment_tool.exe /extract:$WINEPREFIX/drive_c/Office2024Offline
 
 #########################################
 # Check for setup.exe and download Office
