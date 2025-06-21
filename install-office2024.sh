@@ -94,7 +94,7 @@ mkdir -p "$ODT_DIR"
 cd "$ODT_DIR"
 
 ODT_URL="https://download.microsoft.com/download/6c1eeb25-cf8b-41d9-8d0d-cc1dbc032140/officedeploymenttool_18827-20140.exe" # ODT URL (may change)
-ODT_EXE="officedeploymenttool.exe"
+ODT_EXE="office_deployment_tool.exe"
 
 if [ ! -f "$ODT_EXE" ]; then
     echo -e "${YELLOW}Downloading Office Deployment Tool...${NC}"
