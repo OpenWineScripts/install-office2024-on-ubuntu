@@ -93,7 +93,7 @@ ODT_DIR="$HOME/Office_ODT"
 mkdir -p "$ODT_DIR"
 cd "$ODT_DIR"
 
-ODT_URL="https://download.microsoft.com/download/6/4/3/643A248A-024F-4C87-8FCE-8F8D98BB2117/officedeploymenttool_16709-20000.exe" # ODT URL (may change)
+ODT_URL="https://download.microsoft.com/download/6c1eeb25-cf8b-41d9-8d0d-cc1dbc032140/officedeploymenttool_18827-20140.exe" # ODT URL (may change)
 ODT_EXE="officedeploymenttool.exe"
 
 if [ ! -f "$ODT_EXE" ]; then
