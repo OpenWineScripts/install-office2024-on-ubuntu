@@ -1,0 +1,98 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches:
+      - main # Executa no push para a branch 'main'
+  pull_request:
+    branches:
+      - main # Executa em pull requests para a branch 'main'
+  workflow_dispatch: # Permite executar o workflow manualmente pela UI do GitHub
+
+jobs:
+  ci:
+    runs-on: ubuntu-latest # O runner que executará o job (máquina virtual Ubuntu)
+
+    steps:
+      - name: Checkout repository # Clona o repositório para o runner
+        uses: actions/checkout@v4
+
+      - name: Set up ShellCheck # Instala o ShellCheck para linting de scripts Shell
+        run: sudo apt-get update && sudo apt-get install -y shellcheck
+
+      - name: Run ShellCheck on shell scripts # Executa o ShellCheck em todos os scripts .sh
+        run: |
+          find . -name "*.sh" -print0 | while IFS= read -r -d $'\0' file; do
+            echo "Running ShellCheck on $file..."
+            shellcheck "$file" || { echo "ShellCheck failed for $file"; exit 1; }
+          done
+        shell: bash # Garante que este passo é executado com bash
+
+      # Se você tivesse testes para seus scripts, adicionaria um passo aqui:
+      # - name: Run tests (if any)
+      #   run: |
+      #     ./run_tests.sh # Exemplo: seu script de execução de testes
+
+      - name: Build artifact (placeholder) # Passo de build - ajuste conforme seu projeto
+        run: |
+          echo "This is a placeholder for your build process."
+          echo "If you have compilation steps or need to package files, do it here."
+          # Exemplo: mkdir build && cp your_script.sh build/
+          # touch build/my_app_artifact.zip # Cria um arquivo de exemplo
+
+      - name: Upload artifact # Salva os artefatos gerados pelo job CI
+        uses: actions/upload-artifact@v4
+        with:
+          name: my-project-artifacts
+          path: build/ # Caminho para a pasta onde seus artefatos estão (se houver)
+          # Se não houver artefatos gerados no 'build', você pode remover este passo
+          # ou ajustar o 'path' para algo relevante, como seus scripts testados.
+
+  cd:
+    needs: ci # Este job só será executado se o job 'ci' for bem-sucedido
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push' # Executa CD apenas em push para main
+
+    steps:
+      - name: Checkout repository # Clona o repositório novamente para o job de CD
+        uses: actions/checkout@v4
+
+      - name: Download artifact # Baixa os artefatos gerados pelo job CI
+        uses: actions/download-artifact@v4
+        with:
+          name: my-project-artifacts
+          path: ./downloaded_artifacts
+
+      - name: Create GitHub Release (Simplified CD) # Exemplo de passo de CD: criar um release
+        id: create_release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # Token de autenticação do GitHub
+        with:
+          tag_name: v${{ github.run_number }} # Nome da tag (ex: v1, v2)
+          release_name: Release v${{ github.run_number }} # Nome do release
+          body: |
+            Automated release from CI/CD pipeline.
+            Build number: ${{ github.run_number }}
+            Commit: ${{ github.sha }}
+          draft: false # Não é um rascunho
+          prerelease: false # Não é um pré-release
+
+      - name: Upload release asset # Anexa o artefato ao release criado
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./downloaded_artifacts/my_app_artifact.zip # Caminho para o artefato a ser anexado
+          asset_name: my_app_artifact.zip
+          asset_content_type: application/zip
+        # Adapte 'asset_path', 'asset_name' e 'asset_content_type' para seus artefatos reais.
+        # Se não houver artefatos para anexar, você pode remover este passo.
+
+    # Exemplo de Deployment real (necessitaria de mais configuração)
+    # - name: Deploy to Staging/Production
+    #   run: |
+    #     # Comando para deploy, ex: scp -r ./downloaded_artifacts/my_app_artifact.zip user@your-server:/path/to/deploy
+    #     # Ou comandos para provedores de nuvem (AWS CLI, Azure CLI, gcloud CLI, etc.)
+    #     echo "Placeholder for actual deployment logic."
