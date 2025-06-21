@@ -16,6 +16,7 @@ install_wine_winetricks() {
 
         # Detect the distribution
         if [ -f /etc/os-release ]; then
+            # shellcheck disable=SC1091
             . /etc/os-release
             OS=$ID
         elif [[ "$(uname -s)" == "Darwin" ]]; then
@@ -79,9 +80,11 @@ fi
 
 # --- 2. Install necessary dependencies with Winetricks ---
 echo -e "${GREEN}Installing Office dependencies with Winetricks...${NC}"
-winetricks -q corefonts dotnet48 vcrun2019 msxml6 gdiplus riched20 wininet
-
-if [ $? -ne 0 ]; then
+# Dependencies may vary. .NET and Visual C++ are common.
+# For Office, you might need: dotnet48 (or another version), vcrun2019, etc.
+# Consult WineHQ documentation for specific Office compatibility.
+# LATEST UPDATE ON LINE 85: Added msxml6, gdiplus, riched20, wininet
+if ! winetricks -q corefonts dotnet48 vcrun2019 msxml6 gdiplus riched20 wininet; then # Corrected SC2181
     echo -e "${RED}Error installing dependencies with Winetricks. Check the output above.${NC}"
     exit 1
 else
@@ -91,15 +94,14 @@ fi
 # --- 3. Download and configure Office Deployment Tool (ODT) ---
 ODT_DIR="$HOME/Office_ODT"
 mkdir -p "$ODT_DIR"
-cd "$ODT_DIR"
+cd "$ODT_DIR" || exit 1 # Corrected SC2164 - exit if cd fails
 
 ODT_URL="https://download.microsoft.com/download/6c1eeb25-cf8b-41d9-8d0d-cc1dbc032140/officedeploymenttool_18827-20140.exe" # ODT URL (may change)
 ODT_EXE="office_deployment_tool.exe"
 
 if [ ! -f "$ODT_EXE" ]; then
     echo -e "${YELLOW}Downloading Office Deployment Tool...${NC}"
-    wget -O "$ODT_EXE" "$ODT_URL"
-    if [ $? -ne 0 ]; then
+    if ! wget -O "$ODT_EXE" "$ODT_URL"; then # Corrected SC2181
         echo -e "${RED}Error downloading Office Deployment Tool. Check the URL and your connection.${NC}"
         exit 1
     fi
@@ -108,9 +110,7 @@ else
 fi
 
 echo -e "${GREEN}Extracting Office Deployment Tool...${NC}"
-wine "$ODT_EXE" /extract:"$ODT_DIR" /quiet /noreboot
-
-if [ $? -ne 0 ]; then
+if ! wine "$ODT_EXE" /extract:"$ODT_DIR" /quiet /noreboot; then # Corrected SC2181
     echo -e "${RED}Error extracting Office Deployment Tool. Check if Wine is working correctly.${NC}"
     exit 1
 fi
@@ -134,19 +134,17 @@ cat <<EOF > configuration_download.xml
 </Configuration>
 EOF
 
-# --- 5. Perform offline Office download ---
-echo -e "${GREEN}Starting offline Office download... This may take a considerable amount of time.${NC}"
-wine "$ODT_DIR/setup.exe" /download "$ODT_DIR/configuration_download.xml"
-
-if [ $? -ne 0 ]; then
+# --- 5. Realizar o download offline do Office ---
+echo -e "${GREEN}Iniciando download offline do Office... Isso pode levar um tempo considerável.${NC}"
+if ! wine "$ODT_DIR/setup.exe" /download "$ODT_DIR/configuration_download.xml"; then # Corrected SC2181
     echo -e "${RED}Error downloading Office files. Check your connection and the configuration.xml.${NC}"
     exit 1
 else
-    echo -e "${GREEN}Office download completed successfully.${NC}"
+    echo -e "${GREEN}Download do Office concluído com sucesso.${NC}"
 fi
 
-# --- 6. Generate configuration.xml for installation ---
-echo -e "${GREEN}Generating configuration.xml for Office installation...${NC}"
+# --- 6. Gerar configuration.xml para instalação ---
+echo -e "${GREEN}Gerando configuration.xml para instalação do Office...${NC}"
 
 cat <<EOF > configuration_install.xml
 <Configuration>
@@ -161,16 +159,14 @@ cat <<EOF > configuration_install.xml
 </Configuration>
 EOF
 
-# --- 7. Execute offline Office installation ---
-echo -e "${GREEN}Starting offline Office installation...${NC}"
-wine "$ODT_DIR/setup.exe" /configure "$ODT_DIR/configuration_install.xml"
-
-if [ $? -ne 0 ]; then
+# --- 7. Executar a instalação offline do Office ---
+echo -e "${GREEN}Iniciando instalação offline do Office...${NC}"
+if ! wine "$ODT_DIR/setup.exe" /configure "$ODT_DIR/configuration_install.xml"; then # Corrected SC2181
     echo -e "${RED}Error installing Microsoft Office. Check the output above for more details.${NC}"
     exit 1
 else
     echo -e "${GREEN}Microsoft Office installed successfully!${NC}"
-    echo -e "${GREEN}You can find shortcuts in your desktop environment's application menu or run programs directly via Wine.${NC}"
+    echo -e "${GREEN}Você pode encontrar os atalhos no menu de aplicativos do seu ambiente de trabalho ou executar os programas diretamente via Wine.${NC}"
 fi
 
-echo -e "${GREEN}Script completed.${NC}"
+echo -e "${GREEN}Script concluído.${NC}"
