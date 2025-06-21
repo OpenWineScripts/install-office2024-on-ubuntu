@@ -79,10 +79,7 @@ fi
 
 # --- 2. Install necessary dependencies with Winetricks ---
 echo -e "${GREEN}Installing Office dependencies with Winetricks...${NC}"
-# Dependencies may vary. .NET and Visual C++ are common.
-# For Office, you might need: dotnet48 (or another version), vcrun2019, etc.
-# Consult WineHQ documentation for specific Office compatibility.
-winetricks -q corefonts dotnet48 vcrun2019 msxml6 gdiplus riched20 wininet # Example dependencies
+winetricks -q corefonts dotnet48 vcrun2019 msxml6 gdiplus riched20 wininet
 
 if [ $? -ne 0 ]; then
     echo -e "${RED}Error installing dependencies with Winetricks. Check the output above.${NC}"
