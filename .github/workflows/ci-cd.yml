@@ -9,6 +9,13 @@ on:
       - main
   workflow_dispatch:
 
+# --- CORREÇÃO AQUI: Adicione o bloco de permissões no nível do workflow ---
+permissions:
+  contents: write # Concede permissão de escrita para o token em conteúdos do repositório, o que inclui releases.
+  # Você pode adicionar outras permissões se necessário para outros passos, por exemplo:
+  # packages: write # Se você estiver publicando pacotes
+  # pull-requests: write # Se estiver interagindo com PRs
+
 jobs:
   ci:
     runs-on: ubuntu-latest
@@ -24,25 +31,15 @@ jobs:
         run: |
           find . -name "*.sh" -print0 | while IFS= read -r -d $'\0' file; do
             echo "Running ShellCheck on $file..."
-            # Adicionamos '|| true' para que o ShellCheck não falhe o passo imediatamente
-            # se houver apenas avisos leves, permitindo o upload do artefato.
-            # Se você quiser que o CI falhe em QUALQUER erro do shellcheck, remova '|| true'.
             shellcheck "$file" || true
           done
         shell: bash
 
-      # --- CORREÇÃO AQUI ---
-      # O passo de "build" anterior criava um arquivo ZIP vazio ou nada relevante.
-      # Para o contexto de scripts, seu "artefato" pode ser o repositório em si.
-      # Vou remover o passo de build e fazer o upload da pasta do repositório clonado.
-      - name: Upload repository as artifact # Nome mais descritivo do que está sendo carregado
+      - name: Upload repository as artifact
         uses: actions/upload-artifact@v4
         with:
-          name: my-project-scripts # Nome do artefato mais específico
-          path: . # Carrega todo o diretório do repositório clonado
-          # Se você tivesse uma pasta específica de "dist" ou "build" com os scripts finais,
-          # você especificaria o caminho para ela aqui, por exemplo: path: dist/
-          # Para o propósito atual, '.' (diretório atual) funciona bem.
+          name: my-project-scripts
+          path: .
 
   cd:
     needs: ci
@@ -56,17 +53,18 @@ jobs:
       - name: Download artifact
         uses: actions/download-artifact@v4
         with:
-          # --- CORREÇÃO AQUI ---
-          # O nome do artefato precisa corresponder exatamente ao que foi carregado no job CI.
           name: my-project-scripts
-          path: ./downloaded_artifacts # O artefato será baixado dentro desta pasta
+          path: ./downloaded_artifacts
 
-      - name: List downloaded artifacts # Adicionado para depuração - ver o que foi baixado
+      - name: List downloaded artifacts
         run: |
           echo "Listing contents of downloaded_artifacts:"
           ls -R ./downloaded_artifacts/
-          # Se você carregou a pasta raiz ('.'), seus arquivos estarão diretamente em ./downloaded_artifacts
-          # Por exemplo, ./downloaded_artifacts/install-office2024.sh
+
+      - name: Create zip for release asset
+        run: |
+          cd ./downloaded_artifacts
+          zip -r ../release-files.zip ./*
 
       - name: Create GitHub Release (Simplified CD)
         id: create_release
@@ -89,21 +87,9 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
-          # --- CORREÇÃO AQUI ---
-          # O caminho do asset precisa apontar para o arquivo real dentro da pasta baixada.
-          # Se o seu artefato é o repositório inteiro, você pode querer zipá-lo antes de anexar.
-          # Ou anexar um arquivo específico, como seu script principal.
-          # Para simplificar, vamos criar um ZIP da pasta baixada.
-          asset_path: ./release-files.zip # Nome do arquivo ZIP que será criado
+          asset_path: ./release-files.zip
           asset_name: project-files-v${{ github.run_number }}.zip
           asset_content_type: application/zip
-        # Adicione um passo para criar o ZIP antes de carregar o asset do release
-      - name: Create zip for release asset
-        run: |
-          cd ./downloaded_artifacts
-          zip -r ../release-files.zip ./*
-          # O 'cd ../' é para o zip ser criado fora da pasta downloaded_artifacts
-          # e ter acesso fácil pelo passo de upload do asset.
 
     # Exemplo de Deployment real (necessitaria de mais configuração)
     # - name: Deploy to Staging/Production
