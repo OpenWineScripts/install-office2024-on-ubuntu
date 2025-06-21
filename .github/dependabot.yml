@@ -7,7 +7,7 @@ updates:
   - package-ecosystem: "github-actions"
     directory: "/" # Onde os arquivos do workflow (.yml) estão localizados
     schedule:
-      interval: "weekly" # Verifica por atualizações semanalmente
+      interval: "daily" # Verifica por atualizações semanalmente
     target-branch: "main" # Cria Pull Requests para a branch 'main'
     labels:
       - "dependencies" # Adiciona um label 'dependencies' aos PRs
