@@ -36,7 +36,7 @@ jobs:
         shell: bash
 
       - name: Upload repository as artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: my-project-scripts
           path: .
